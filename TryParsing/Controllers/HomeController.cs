@@ -9,6 +9,12 @@ using System.Net;
 using System.Text;
 using System.IO;
 using System;
+using PuppeteerSharp;
+using Microsoft.Extensions.Logging;
+using OpenQA.Selenium;
+using OpenQA.Selenium.Chrome;
+using OpenQA.Selenium.Remote;
+using OpenQA.Selenium.Internal;
 
 namespace TryParsing.Controllers
 {
@@ -34,7 +40,8 @@ namespace TryParsing.Controllers
         }
 
 
-        
+
+
 
 
 
@@ -42,13 +49,76 @@ namespace TryParsing.Controllers
 
 
         //mine
-        public IActionResult Index()
+
+        //only for html 
+
+        /*public IActionResult Index()
         {
             string url = "https://www.scrapingbee.com/blog/web-scraping-csharp/";
             var response = CallUrl(url).Result;
             WriteToCsv(ParseHtml(response));
             return View();
+        }*/
+
+        //TODO:jsov 1in dzev ogtagorcuma puppeteer nutgate
+
+
+        public async Task<IActionResult> Index()
+        {
+            string fullUrl = "https://en.wikipedia.org/wiki/List_of_programmers";
+
+            List<string> programmerLinks = new();
+
+            var options = new LaunchOptions()
+            {
+                Headless = true,
+                ExecutablePath = "C:/Program Files/Google/Chrome/Application/chrome.exe"
+            };
+
+            var browser = await Puppeteer.LaunchAsync(options, null);
+            var page = await browser.NewPageAsync();
+            await page.GoToAsync(fullUrl);
+
+            var links = @"Array.from(document.querySelectorAll('li:not([class^=""toc""]) a')).map(a => a.href);";
+            var urls = await page.EvaluateExpressionAsync<string[]>(links);
+
+            foreach (string url in urls)
+            {
+                programmerLinks.Add(url);
+            }
+
+            WriteToCsv(programmerLinks);
+
+            return View();
         }
+
+        //jsov 2rd dzevy ogtagorcuma Selenium nutgatey inchvor bana pakasum toli chgitem chi ashxatum
+
+        //public async Task<IActionResult> Index()
+        //{
+        //    string fullUrl = "https://en.wikipedia.org/wiki/List_of_programmers";
+        //    List<string> programmerLinks = new List<string>();
+
+        //    var options = new ChromeOptions()
+        //    {
+        //        BinaryLocation = "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe"
+        //    };
+
+        //    options.AddArguments(new List<string>() { "headless", "disable-gpu" });
+
+        //    var browser = new ChromeDriver(options);
+        //    browser.Navigate().GoToUrl(fullUrl);
+
+        //    var links = browser.FindElementsByXPath("//li[not(contains(@class, 'tocsection'))]/a[1]");
+        //    foreach (var url in links)
+        //    {
+        //        programmerLinks.Add(url.GetAttribute("href"));
+        //    }
+
+        //    WriteToCsv(programmerLinks);
+
+        //    return View();
+        //}
         private static async Task<string> CallUrl(string fullUrl)
         {
             HttpClient client = new HttpClient();
@@ -68,7 +138,7 @@ namespace TryParsing.Controllers
 
             foreach (var link in programmerLinks)
             {
-                if (link.FirstChild.Attributes.Count > 0) wikiLink.Add("https://www.scrapingbee.com" + link.FirstChild.Attributes[0].Value);
+                if (link.FirstChild.Attributes.Count > 0) wikiLink.Add("https://en.wikipedia.org" + link.FirstChild.Attributes[0].Value);
             }
 
             return wikiLink;
@@ -81,7 +151,7 @@ namespace TryParsing.Controllers
             StringBuilder sb = new StringBuilder();
             foreach (var link in links)
             {
-                sb.AppendLine(link);
+                    sb.AppendLine(link);
             }
             sw.WriteLine(sb);
             sw.Close();
